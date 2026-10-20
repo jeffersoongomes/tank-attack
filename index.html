@@ -106,7 +106,7 @@
         let gameTime = 0;
         let gameOver = false;
 
-        // Controlo de tempo para subida de nível a cada 60 segundos
+        // Subida de nível a cada 60 segundos
         setInterval(() => {
             if (!gameOver) {
                 gameTime++;
@@ -117,7 +117,7 @@
             }
         }, 1000);
 
-        // Jogador (Tank Branco no centro)
+        // Jogador
         let player = {
             x: 235,
             y: 235,
@@ -130,7 +130,6 @@
         let enemies = [];
         let enemyBullets = [];
 
-        // Teclado
         let keys = {};
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
@@ -154,30 +153,46 @@
                 resetGame();
                 return;
             }
-            let bx = player.x + player.size / 2 - 4;
-            let by = player.y + player.size / 2 - 4;
+
+            let bx = 0, by = 0;
             let bdx = 0, bdy = 0;
-            let speed = 6;
+            let speed = 7;
+            let cannonLength = 22; // Distância do centro até à ponta do canhão
+            let centerX = player.x + player.size / 2;
+            let centerY = player.y + player.size / 2;
 
-            if (player.dir === 'UP') bdy = -speed;
-            if (player.dir === 'DOWN') bdy = speed;
-            if (player.dir === 'LEFT') bdx = -speed;
-            if (player.dir === 'RIGHT') bdx = speed;
+            // Posição EXATA da ponta do bico do canhão
+            if (player.dir === 'UP') {
+                bx = centerX - 3;
+                by = centerY - cannonLength;
+                bdy = -speed;
+            } else if (player.dir === 'DOWN') {
+                bx = centerX - 3;
+                by = centerY + cannonLength - 6;
+                bdy = speed;
+            } else if (player.dir === 'LEFT') {
+                bx = centerX - cannonLength;
+                by = centerY - 3;
+                bdx = -speed;
+            } else if (player.dir === 'RIGHT') {
+                bx = centerX + cannonLength - 6;
+                by = centerY - 3;
+                bdx = speed;
+            }
 
-            bullets.push({ x: bx, y: by, dx: bdx, dy: bdy, size: 8 });
+            bullets.push({ x: bx, y: by, dx: bdx, dy: bdy, size: 6 });
         }
 
-        // Criar Inimigos (Tanques Pretos nas bordas)
         function spawnEnemy() {
             if (gameOver) return;
             let side = Math.floor(Math.random() * 4);
             let ex = 0, ey = 0;
-            if (side === 0) { ex = Math.random() * canvas.width; ey = -30; }
-            else if (side === 1) { ex = Math.random() * canvas.width; ey = canvas.height + 30; }
-            else if (side === 2) { ex = -30; ey = Math.random() * canvas.height; }
-            else { ex = canvas.width + 30; ey = Math.random() * canvas.height; }
+            if (side === 0) { ex = Math.random() * (canvas.width - 30); ey = -30; }
+            else if (side === 1) { ex = Math.random() * (canvas.width - 30); ey = canvas.height + 30; }
+            else if (side === 2) { ex = -30; ey = Math.random() * (canvas.height - 30); }
+            else { ex = canvas.width + 30; ey = Math.random() * (canvas.height - 30); }
 
-            enemies.push({ x: ex, y: ey, size: 30, speed: 1 + (level * 0.3) });
+            enemies.push({ x: ex, y: ey, size: 30, speed: 1 + (level * 0.2), angle: 0 });
         }
 
         setInterval(spawnEnemy, 2500);
@@ -207,19 +222,18 @@
             if ((keys['KeyA'] || keys['ArrowLeft']) && player.x > 0) { player.x -= player.speed; player.dir = 'LEFT'; }
             if ((keys['KeyD'] || keys['ArrowRight']) && player.x < canvas.width - player.size) { player.x += player.speed; player.dir = 'RIGHT'; }
 
-            // Atualizar Balas do Jogador
+            // Balas do Jogador
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
                 b.x += b.dx;
                 b.y += b.dy;
 
-                // Remover fora da tela
                 if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
                     bullets.splice(i, 1);
                     continue;
                 }
 
-                // Colisão Bala vs Inimigo (destrói o tanque preto)
+                // Destrói inimigo ao acertar
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     let e = enemies[j];
                     if (b.x < e.x + e.size && b.x + b.size > e.x && b.y < e.y + e.size && b.y + b.size > e.y) {
@@ -237,30 +251,38 @@
                 }
             }
 
-            // Atualizar Inimigos
+            // Inimigos
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
-                // Perseguir o jogador suavemente
-                let angle = Math.atan2(player.y - e.y, player.x - e.x);
-                e.x += Math.cos(angle) * e.speed;
-                e.y += Math.sin(angle) * e.speed;
+                let exCenter = e.x + e.size / 2;
+                let eyCenter = e.y + e.size / 2;
+                let pxCenter = player.x + player.size / 2;
+                let pyCenter = player.y + player.size / 2;
 
-                // ATENÇÃO: A colisão direta com o tanque inimigo FOI REMOVIDA. Podes encostar nele à vontade!
+                // Ângulo em direção ao jogador
+                e.angle = Math.atan2(pyCenter - eyCenter, pxCenter - exCenter);
 
-                // Inimigos disparam ocasionalmente contra o jogador
-                if (Math.random() < 0.01 + (level * 0.002)) {
-                    let bAngle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(e.angle) * e.speed;
+                e.y += Math.sin(e.angle) * e.speed;
+
+                // Tiro sai EXATAMENTE da ponta do canhão do inimigo
+                if (Math.random() < 0.008 + (level * 0.002)) {
+                    let cannonLength = 20;
+                    let tipX = exCenter + Math.cos(e.angle) * cannonLength;
+                    let tipY = eyCenter + Math.sin(e.angle) * cannonLength;
+                    let bSpeed = 3 + level * 0.4;
+
                     enemyBullets.push({
-                        x: e.x + e.size/2,
-                        y: e.y + e.size/2,
-                        dx: Math.cos(bAngle) * (3 + level * 0.5),
-                        dy: Math.sin(bAngle) * (3 + level * 0.5),
+                        x: tipX - 3,
+                        y: tipY - 3,
+                        dx: Math.cos(e.angle) * bSpeed,
+                        dy: Math.sin(e.angle) * bSpeed,
                         size: 6
                     });
                 }
             }
 
-            // Atualizar Balas Inimigas (estas sim causam dano ao jogador)
+            // Balas Inimigas
             for (let i = enemyBullets.length - 1; i >= 0; i--) {
                 let eb = enemyBullets[i];
                 eb.x += eb.dx;
@@ -271,79 +293,5 @@
                     continue;
                 }
 
-                // Colisão da bala inimiga com o jogador
-                if (eb.x < player.x + player.size && eb.x + eb.size > player.x && eb.y < player.y + player.size && eb.y + eb.size > player.y) {
-                    enemyBullets.splice(i, 1);
-                    lives--;
-                    updateLivesDisplay();
-                    if (lives <= 0) {
-                        gameOver = true;
-                    }
-                }
-            }
-        }
-
-        function updateLivesDisplay() {
-            let hearts = '';
-            for (let i = 0; i < lives; i++) hearts += '❤️';
-            livesEl.innerText = hearts;
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Desenhar Jogador (Branco)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(player.x, player.y, player.size, player.size);
-            // Canhão do jogador
-            ctx.fillStyle = '#cccccc';
-            if (player.dir === 'UP') ctx.fillRect(player.x + 11, player.y - 10, 8, 12);
-            if (player.dir === 'DOWN') ctx.fillRect(player.x + 11, player.y + 28, 8, 12);
-            if (player.dir === 'LEFT') ctx.fillRect(player.x - 10, player.y + 11, 12, 8);
-            if (player.dir === 'RIGHT') ctx.fillRect(player.x + 28, player.y + 11, 12, 8);
-
-            // Desenhar Inimigos (Pretos com bordas brancas para destacar)
-            ctx.fillStyle = '#111111';
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            for (let e of enemies) {
-                ctx.fillRect(e.x, e.y, e.size, e.size);
-                ctx.strokeRect(e.x, e.y, e.size, e.size);
-            }
-
-            // Desenhar Balas do Jogador (Brancas)
-            ctx.fillStyle = '#ffffff';
-            for (let b of bullets) {
-                ctx.fillRect(b.x, b.y, b.size, b.size);
-            }
-
-            // Desenhar Balas Inimigas (Vermelhas para avisar o perigo)
-            ctx.fillStyle = '#ff4444';
-            for (let eb of enemyBullets) {
-                ctx.fillRect(eb.x, eb.y, eb.size, eb.size);
-            }
-
-            // Tela de Game Over
-            if (gameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#ff4444';
-                ctx.font = 'bold 24px "Courier New"';
-                ctx.textAlign = 'center';
-                ctx.fillText('FIM DE JOGO', canvas.width / 2, canvas.height / 2 - 20);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '14px "Courier New"';
-                ctx.fillText('Clique ou Pressione ESPAÇO para Recomeçar', canvas.width / 2, canvas.height / 2 + 20);
-            }
-        }
-
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
-
-        loop();
-    </script>
-</body>
-</html>
+                // Dano ao jogador ao ser atingido pela bala
+                if (eb.x < player.x + player.size && eb.x + eb.size

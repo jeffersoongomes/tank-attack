@@ -2,646 +2,348 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>• TANK ATTACK •</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Attack</title>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
+            box-sizing: border-box;
         }
-
         body {
-            background-color: #e5f0d8; /* Cor de fundo estilo ecrã LCD verde/cinza retrô */
-            color: #111;
-            font-family: 'Courier New', Courier, monospace, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 10px;
         }
-
-        .game-title {
-            color: #1b5e20;
-            font-size: 28px;
-            font-weight: 900;
-            text-shadow: 1px 1px 0px #a3c9a8;
-            margin-bottom: 8px;
+        h1 {
+            color: #4CAF50;
+            font-size: 24px;
+            margin-bottom: 10px;
             letter-spacing: 2px;
-            display: flex;
-            align-items: center;
+        }
+        .scoreboard {
+            font-size: 16px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        canvas {
+            border: 4px solid #fff;
+            background-color: #1a1a2e;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+        .controls-hint {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #aaa;
+            text-align: center;
+        }
+        .mobile-controls {
+            display: none;
+            margin-top: 15px;
             gap: 10px;
         }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            background-color: #1b5e20;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .hud-container {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 420px;
-            margin-bottom: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            background: #d0e1b9;
-            padding: 8px 12px;
-            border: 2px solid #111;
-            border-radius: 6px;
-        }
-
-        .hud-item span {
-            color: #1b5e20;
-        }
-
-        #game-canvas {
-            background-color: #f4faf0;
-            border: 4px solid #111;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-            image-rendering: pixelated;
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-        }
-
-        /* Painel de controlos para Mobile */
-        .touch-controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 6px;
-            margin-top: 15px;
-            width: 200px;
-            height: 200px;
-        }
-
-        .btn-touch {
-            background-color: #222;
+        .btn-ctrl {
+            background: #333;
             color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
+            border: 2px solid #fff;
+            padding: 10px 20px;
+            font-size: 16px;
             font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 0 #000;
             cursor: pointer;
-            touch-action: manipulation;
+            border-radius: 5px;
         }
-
-        .btn-touch:active {
-            box-shadow: 0 1px 0 #000;
-            transform: translateY(3px);
-            background-color: #444;
+        .btn-ctrl:active {
+            background: #4CAF50;
         }
-
-        .btn-fire {
-            grid-column: 2 / 3;
-            grid-row: 2 / 3;
-            background-color: #c62828 !important;
-            font-size: 14px;
-        }
-
-        .instructions {
-            margin-top: 12px;
-            font-size: 12px;
-            color: #444;
-            text-align: center;
-            max-width: 400px;
-            line-height: 1.4;
-        }
-
-        /* Oculta controlos de toque em ecrãs muito grandes se preferir */
-        @media (min-width: 768px) {
-            .instructions {
-                font-size: 13px;
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="game-title">
-        <span class="dot"></span> TANK ATTACK <span class="dot"></span>
+    <h1>• TANK ATTACK •</h1>
+    <div class="scoreboard">
+        Vidas: <span id="lives">❤️❤️❤️</span> | Nível: <span id="level">1</span> | Pontos: <span id="score">0</span> | Recorde: <span id="highscore">0</span>
     </div>
 
-    <div class="hud-container">
-        <div class="hud-item">PONTOS: <span id="score">0</span></div>
-        <div class="hud-item">NÍVEL: <span id="level">1</span></div>
-        <div class="hud-item">TEMPO: <span id="timer">00:00</span></div>
-        <div class="hud-item">RECORDE: <span id="highscore">0</span></div>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+    <div class="controls-hint">
+        <b>WASD / Setas</b>: Mover | <b>Espaço / Clique</b>: Atirar
     </div>
 
-    <canvas id="game-canvas" width="400" height="400"></canvas>
-
-    <!-- Botões Virtuais para Telemóveis / Touch -->
-    <div class="touch-controls">
-        <button class="btn-touch" style="grid-column: 2; grid-row: 1;" id="btn-up">▲</button>
-        <button class="btn-touch" style="grid-column: 1; grid-row: 2;" id="btn-left">◀</button>
-        <button class="btn-touch btn-fire" id="btn-fire">TIRO</button>
-        <button class="btn-touch" style="grid-column: 3; grid-row: 2;" id="btn-right">▶</button>
-        <button class="btn-touch" style="grid-column: 2; grid-row: 3;" id="btn-down">▼</button>
-    </div>
-
-    <div class="instructions">
-        <b>Controlos PC:</b> Teclas <b>WASD / Setas</b> para rodar/mover | <b>Espaço</b> para Atirar.<br>
-        A velocidade dos tanques inimigos aumenta a cada <b>60 segundos</b> (Level Up)!
+    <div class="mobile-controls">
+        <button class="btn-ctrl" onclick="movePlayer('UP')">⬆️</button>
+        <button class="btn-ctrl" onclick="movePlayer('LEFT')">⬅️</button>
+        <button class="btn-ctrl" onclick="movePlayer('RIGHT')">➡️</button>
+        <button class="btn-ctrl" onclick="movePlayer('DOWN')">⬇️</button>
+        <button class="btn-ctrl" onclick="shootBullet()" style="background: #b71c1c;">🔥 ATIRAR</button>
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO & AUDIO RETRÔ ---
-        const canvas = document.getElementById('game-canvas');
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         const scoreEl = document.getElementById('score');
-        const levelEl = document.getElementById('level');
-        const timerEl = document.getElementById('timer');
         const highscoreEl = document.getElementById('highscore');
+        const livesEl = document.getElementById('lives');
+        const levelEl = document.getElementById('level');
 
-        // Sintetizador de áudio Web Audio API (sem ficheiros externos)
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
-
-        function playSound(type) {
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            const now = audioCtx.currentTime;
-
-            if (type === 'shoot') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            } else if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.linearRampToValueAtTime(40, now + 0.2);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            } else if (type === 'levelup') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.setValueAtTime(450, now + 0.1);
-                osc.frequency.setValueAtTime(600, now + 0.2);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
-                osc.start(now);
-                osc.stop(now + 0.35);
-            } else if (type === 'gameover') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, now);
-                osc.frequency.linearRampToValueAtTime(50, now + 0.6);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
-                osc.start(now);
-                osc.stop(now + 0.6);
-            }
-        }
-
-        // --- VARIÁVEIS DE JOGO ---
-        const GRID_SIZE = 16; // Tamanho dos blocos pixelados
         let score = 0;
-        let highscore = parseInt(localStorage.getItem('tank_attack_highscore')) || 0;
+        let highscore = localStorage.getItem('tank_highscore') || 0;
         highscoreEl.innerText = highscore;
 
+        let lives = 3;
         let level = 1;
-        let gameTimeSeconds = 0;
-        let gameTimerInterval = null;
+        let gameTime = 0;
         let gameOver = false;
-        let gameStarted = false;
 
-        // Inimigos e Projéteis
-        let enemies = [];
-        let playerBullets = [];
-        let enemySpawnTimer = 0;
-        let enemySpawnInterval = 120; // frames
-        let enemyBaseSpeed = 0.6; // Velocidade inicial levemente mais lenta como nos minigames
-
-        // Teclas pressionadas
-        const keys = {};
-
-        // Tanque do Jogador
-        const player = {
-            x: 200,
-            y: 200,
-            size: 28,
-            dir: 'UP', // 'UP', 'DOWN', 'LEFT', 'RIGHT'
-            speed: 2,
-            cooldown: 0
-        };
-
-        // --- DESENHO PIXEL ART DOS TANQUES ---
-        // Desenha Tanque do Jogador (Branco com contorno preto)
-        function drawPlayerTank(x, y, dir) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            // Rotação com base na direção
-            if (dir === 'DOWN') ctx.rotate(Math.PI);
-            if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
-            if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2.5;
-
-            // Lagartas (Lados)
-            ctx.fillRect(-12, -12, 6, 24);
-            ctx.strokeRect(-12, -12, 6, 24);
-
-            ctx.fillRect(6, -12, 6, 24);
-            ctx.strokeRect(6, -12, 6, 24);
-
-            // Corpo Central
-            ctx.fillRect(-7, -8, 14, 16);
-            ctx.strokeRect(-7, -8, 14, 16);
-
-            // Canhão (Apontado para cima por padrão no translate)
-            ctx.fillRect(-2.5, -16, 5, 10);
-            ctx.strokeRect(-2.5, -16, 5, 10);
-
-            // Centro do Tanque
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(-2, -3, 4, 4);
-
-            ctx.restore();
-        }
-
-        // Desenha Tanque Inimigo (Totalmente Preto / Preenchido 8-bit)
-        function drawEnemyTank(x, y, dir) {
-            ctx.save();
-            ctx.translate(x, y);
-
-            if (dir === 'DOWN') ctx.rotate(Math.PI);
-            if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
-            if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
-
-            ctx.fillStyle = '#111111';
-
-            // Lagartas (Lados)
-            ctx.fillRect(-12, -12, 6, 24);
-            ctx.fillRect(6, -12, 6, 24);
-
-            // Corpo Central
-            ctx.fillRect(-7, -8, 14, 16);
-
-            // Canhão
-            ctx.fillRect(-2.5, -16, 5, 10);
-
-            ctx.restore();
-        }
-
-        // --- GERENCIAMENTO DE SPAWN DE INIMIGOS ---
-        function spawnEnemy() {
-            // Inimigos surgem das 4 bordas do ecrã
-            const side = Math.floor(Math.random() * 4); // 0: Topo, 1: Direita, 2: Baixo, 3: Esquerda
-            let x, y, dir;
-
-            if (side === 0) { // Topo
-                x = Math.random() * (canvas.width - 60) + 30;
-                y = 20;
-                dir = 'DOWN';
-            } else if (side === 1) { // Direita
-                x = canvas.width - 20;
-                y = Math.random() * (canvas.height - 60) + 30;
-                dir = 'LEFT';
-            } else if (side === 2) { // Baixo
-                x = Math.random() * (canvas.width - 60) + 30;
-                y = canvas.height - 20;
-                dir = 'UP';
-            } else { // Esquerda
-                x = 20;
-                y = Math.random() * (canvas.height - 60) + 30;
-                dir = 'RIGHT';
-            }
-
-            enemies.push({
-                x: x,
-                y: y,
-                dir: dir,
-                speed: enemyBaseSpeed + (level * 0.25), // Aumenta a velocidade por Nível
-                size: 26
-            });
-        }
-
-        // --- DISPARAR BALAS ---
-        function shootBullet() {
-            if (player.cooldown > 0 || gameOver) return;
-
-            let bx = player.x;
-            let by = player.y;
-            let vx = 0;
-            let vy = 0;
-            const bulletSpeed = 5;
-
-            if (player.dir === 'UP') { by -= 18; vy = -bulletSpeed; }
-            if (player.dir === 'DOWN') { by += 18; vy = bulletSpeed; }
-            if (player.dir === 'LEFT') { bx -= 18; vx = -bulletSpeed; }
-            if (player.dir === 'RIGHT') { bx += 18; vx = bulletSpeed; }
-
-            playerBullets.push({ x: bx, y: by, vx: vx, vy: vy, width: 4, height: 8 });
-            player.cooldown = 15; // Intervalo entre tiros
-            playSound('shoot');
-        }
-
-        // --- TEMPORIZADOR & SISTEMA DE NÍVEIS (A CADA 60 SEGUNDOS) ---
-        function startTimer() {
-            if (gameTimerInterval) clearInterval(gameTimerInterval);
-
-            gameTimeSeconds = 0;
-            gameTimerInterval = setInterval(() => {
-                if (gameOver) return;
-
-                gameTimeSeconds++;
-
-                // Formatar minutos e segundos (MM:SS)
-                const mins = Math.floor(gameTimeSeconds / 60).toString().padStart(2, '0');
-                const secs = (gameTimeSeconds % 60).toString().padStart(2, '0');
-                timerEl.innerText = `${mins}:${secs}`;
-
-                // A CADA 60 SEGUNDOS: AUMENTA O NÍVEL!
-                if (gameTimeSeconds % 60 === 0) {
+        // Controlo de tempo para subida de nível a cada 60 segundos
+        setInterval(() => {
+            if (!gameOver) {
+                gameTime++;
+                if (gameTime % 60 === 0) {
                     level++;
                     levelEl.innerText = level;
-                    enemySpawnInterval = Math.max(40, enemySpawnInterval - 15); // Aumenta frequência
-                    playSound('levelup');
                 }
-            }, 1000);
+            }
+        }, 1000);
+
+        // Jogador (Tank Branco no centro)
+        let player = {
+            x: 235,
+            y: 235,
+            size: 30,
+            speed: 3,
+            dir: 'UP'
+        };
+
+        let bullets = [];
+        let enemies = [];
+        let enemyBullets = [];
+
+        // Teclado
+        let keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                shootBullet();
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+        function movePlayer(direction) {
+            player.dir = direction;
+            if (direction === 'UP' && player.y > 0) player.y -= player.speed * 4;
+            if (direction === 'DOWN' && player.y < canvas.height - player.size) player.y += player.speed * 4;
+            if (direction === 'LEFT' && player.x > 0) player.x -= player.speed * 4;
+            if (direction === 'RIGHT' && player.x < canvas.width - player.size) player.x += player.speed * 4;
         }
 
-        // --- RESET DO JOGO ---
+        function shootBullet() {
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            let bx = player.x + player.size / 2 - 4;
+            let by = player.y + player.size / 2 - 4;
+            let bdx = 0, bdy = 0;
+            let speed = 6;
+
+            if (player.dir === 'UP') bdy = -speed;
+            if (player.dir === 'DOWN') bdy = speed;
+            if (player.dir === 'LEFT') bdx = -speed;
+            if (player.dir === 'RIGHT') bdx = speed;
+
+            bullets.push({ x: bx, y: by, dx: bdx, dy: bdy, size: 8 });
+        }
+
+        // Criar Inimigos (Tanques Pretos nas bordas)
+        function spawnEnemy() {
+            if (gameOver) return;
+            let side = Math.floor(Math.random() * 4);
+            let ex = 0, ey = 0;
+            if (side === 0) { ex = Math.random() * canvas.width; ey = -30; }
+            else if (side === 1) { ex = Math.random() * canvas.width; ey = canvas.height + 30; }
+            else if (side === 2) { ex = -30; ey = Math.random() * canvas.height; }
+            else { ex = canvas.width + 30; ey = Math.random() * canvas.height; }
+
+            enemies.push({ x: ex, y: ey, size: 30, speed: 1 + (level * 0.3) });
+        }
+
+        setInterval(spawnEnemy, 2500);
+
         function resetGame() {
             score = 0;
+            lives = 3;
             level = 1;
-            gameTimeSeconds = 0;
+            gameTime = 0;
             gameOver = false;
-            gameStarted = true;
-
+            enemies = [];
+            bullets = [];
+            enemyBullets = [];
+            player.x = 235;
+            player.y = 235;
             scoreEl.innerText = score;
             levelEl.innerText = level;
-            timerEl.innerText = "00:00";
-
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            player.dir = 'UP';
-            player.cooldown = 0;
-
-            enemies = [];
-            playerBullets = [];
-            enemySpawnTimer = 0;
-            enemySpawnInterval = 110;
-
-            startTimer();
+            livesEl.innerText = '❤️❤️❤️';
         }
 
-        // --- ATUALIZAÇÃO DA LÓGICA DO JOGO ---
         function update() {
-            if (!gameStarted || gameOver) return;
+            if (gameOver) return;
 
-            // Movimentação do Jogador
-            let dx = 0;
-            let dy = 0;
+            // Movimento do Jogador
+            if ((keys['KeyW'] || keys['ArrowUp']) && player.y > 0) { player.y -= player.speed; player.dir = 'UP'; }
+            if ((keys['KeyS'] || keys['ArrowDown']) && player.y < canvas.height - player.size) { player.y += player.speed; player.dir = 'DOWN'; }
+            if ((keys['KeyA'] || keys['ArrowLeft']) && player.x > 0) { player.x -= player.speed; player.dir = 'LEFT'; }
+            if ((keys['KeyD'] || keys['ArrowRight']) && player.x < canvas.width - player.size) { player.x += player.speed; player.dir = 'RIGHT'; }
 
-            if (keys['KeyW'] || keys['ArrowUp']) { dy = -1; player.dir = 'UP'; }
-            else if (keys['KeyS'] || keys['ArrowDown']) { dy = 1; player.dir = 'DOWN'; }
-            else if (keys['KeyA'] || keys['ArrowLeft']) { dx = -1; player.dir = 'LEFT'; }
-            else if (keys['KeyD'] || keys['ArrowRight']) { dx = 1; player.dir = 'RIGHT'; }
+            // Atualizar Balas do Jogador
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.dx;
+                b.y += b.dy;
 
-            if (dx !== 0 || dy !== 0) {
-                player.x += dx * player.speed;
-                player.y += dy * player.speed;
-
-                // Restrições de borda da arena
-                player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
-                player.y = Math.max(20, Math.min(canvas.height - 20, player.y));
-            }
-
-            // Cooldown de tiro
-            if (player.cooldown > 0) player.cooldown--;
-
-            // Tiro por tecla Espaço
-            if (keys['Space']) {
-                shootBullet();
-            }
-
-            // Spawn de Inimigos
-            enemySpawnTimer++;
-            if (enemySpawnTimer >= enemySpawnInterval) {
-                spawnEnemy();
-                enemySpawnTimer = 0;
-            }
-
-            // Atualização dos Inimigos (Movem em direção ao jogador/centro)
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
-
-                // Calcula direção em direção ao jogador
-                let diffX = player.x - e.x;
-                let diffY = player.y - e.y;
-
-                if (Math.abs(diffX) > Math.abs(diffY)) {
-                    e.dir = diffX > 0 ? 'RIGHT' : 'LEFT';
-                    e.x += (diffX > 0 ? 1 : -1) * e.speed;
-                } else {
-                    e.dir = diffY > 0 ? 'DOWN' : 'UP';
-                    e.y += (diffY > 0 ? 1 : -1) * e.speed;
-                }
-
-                // Colisão Inimigo vs Jogador (Game Over)
-                let dist = Math.hypot(player.x - e.x, player.y - e.y);
-                if (dist < (player.size / 2 + e.size / 2 - 4)) {
-                    triggerGameOver();
-                    return;
-                }
-            }
-
-            // Atualização de Projéteis do Jogador
-            for (let bIndex = playerBullets.length - 1; bIndex >= 0; bIndex--) {
-                let b = playerBullets[bIndex];
-                b.x += b.vx;
-                b.y += b.vy;
-
-                // Remover se sair do canvas
+                // Remover fora da tela
                 if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
-                    playerBullets.splice(bIndex, 1);
+                    bullets.splice(i, 1);
                     continue;
                 }
 
-                // Colisão Projétil vs Inimigos
-                for (let eIndex = enemies.length - 1; eIndex >= 0; eIndex--) {
-                    let e = enemies[eIndex];
-                    let dist = Math.hypot(b.x - e.x, b.y - e.y);
-
-                    if (dist < (e.size / 2 + 4)) {
-                        // Destruiu inimigo!
-                        enemies.splice(eIndex, 1);
-                        playerBullets.splice(bIndex, 1);
+                // Colisão Bala vs Inimigo (destrói o tanque preto)
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (b.x < e.x + e.size && b.x + b.size > e.x && b.y < e.y + e.size && b.y + b.size > e.y) {
+                        enemies.splice(j, 1);
+                        bullets.splice(i, 1);
                         score += 10;
                         scoreEl.innerText = score;
-
                         if (score > highscore) {
                             highscore = score;
                             highscoreEl.innerText = highscore;
-                            localStorage.setItem('tank_attack_highscore', highscore);
+                            localStorage.setItem('tank_highscore', highscore);
                         }
-
-                        playSound('hit');
                         break;
+                    }
+                }
+            }
+
+            // Atualizar Inimigos
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                // Perseguir o jogador suavemente
+                let angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed;
+                e.y += Math.sin(angle) * e.speed;
+
+                // ATENÇÃO: A colisão direta com o tanque inimigo FOI REMOVIDA. Podes encostar nele à vontade!
+
+                // Inimigos disparam ocasionalmente contra o jogador
+                if (Math.random() < 0.01 + (level * 0.002)) {
+                    let bAngle = Math.atan2(player.y - e.y, player.x - e.x);
+                    enemyBullets.push({
+                        x: e.x + e.size/2,
+                        y: e.y + e.size/2,
+                        dx: Math.cos(bAngle) * (3 + level * 0.5),
+                        dy: Math.sin(bAngle) * (3 + level * 0.5),
+                        size: 6
+                    });
+                }
+            }
+
+            // Atualizar Balas Inimigas (estas sim causam dano ao jogador)
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.x += eb.dx;
+                eb.y += eb.dy;
+
+                if (eb.x < 0 || eb.x > canvas.width || eb.y < 0 || eb.y > canvas.height) {
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão da bala inimiga com o jogador
+                if (eb.x < player.x + player.size && eb.x + eb.size > player.x && eb.y < player.y + player.size && eb.y + eb.size > player.y) {
+                    enemyBullets.splice(i, 1);
+                    lives--;
+                    updateLivesDisplay();
+                    if (lives <= 0) {
+                        gameOver = true;
                     }
                 }
             }
         }
 
-        // --- GAME OVER ---
-        function triggerGameOver() {
-            gameOver = true;
-            clearInterval(gameTimerInterval);
-            playSound('gameover');
+        function updateLivesDisplay() {
+            let hearts = '';
+            for (let i = 0; i < lives; i++) hearts += '❤️';
+            livesEl.innerText = hearts;
         }
 
-        // --- RENDERIZAÇÃO NA TELA ---
-        function render() {
-            // Limpa Arena
-            ctx.fillStyle = '#f4faf0';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Moldura Interna da Arena (Linha Preta Solida igual imagem)
-            ctx.strokeStyle = '#111111';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+            // Desenhar Jogador (Branco)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+            // Canhão do jogador
+            ctx.fillStyle = '#cccccc';
+            if (player.dir === 'UP') ctx.fillRect(player.x + 11, player.y - 10, 8, 12);
+            if (player.dir === 'DOWN') ctx.fillRect(player.x + 11, player.y + 28, 8, 12);
+            if (player.dir === 'LEFT') ctx.fillRect(player.x - 10, player.y + 11, 12, 8);
+            if (player.dir === 'RIGHT') ctx.fillRect(player.x + 28, player.y + 11, 12, 8);
 
-            if (!gameStarted) {
-                // Ecrã de Início
-                ctx.fillStyle = '#111111';
-                ctx.font = 'bold 18px "Courier New"';
-                ctx.textAlign = 'center';
-                ctx.fillText('• TANK ATTACK •', canvas.width / 2, 160);
-                ctx.font = '14px "Courier New"';
-                ctx.fillText('PRESSIONE ESPAÇO / CLIQUE', canvas.width / 2, 210);
-                ctx.fillText('PARA INICIAR', canvas.width / 2, 230);
-                return;
-            }
-
-            // Desenha Inimigos
-            enemies.forEach(e => drawEnemyTank(e.x, e.y, e.dir));
-
-            // Desenha Jogador
-            if (!gameOver) {
-                drawPlayerTank(player.x, player.y, player.dir);
-            }
-
-            // Desenha Projéteis
+            // Desenhar Inimigos (Pretos com bordas brancas para destacar)
             ctx.fillStyle = '#111111';
-            playerBullets.forEach(b => {
-                ctx.fillRect(b.x - 2, b.y - 4, b.width, b.height);
-            });
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            for (let e of enemies) {
+                ctx.fillRect(e.x, e.y, e.size, e.size);
+                ctx.strokeRect(e.x, e.y, e.size, e.size);
+            }
 
-            // Ecrã de Game Over
+            // Desenhar Balas do Jogador (Brancas)
+            ctx.fillStyle = '#ffffff';
+            for (let b of bullets) {
+                ctx.fillRect(b.x, b.y, b.size, b.size);
+            }
+
+            // Desenhar Balas Inimigas (Vermelhas para avisar o perigo)
+            ctx.fillStyle = '#ff4444';
+            for (let eb of enemyBullets) {
+                ctx.fillRect(eb.x, eb.y, eb.size, eb.size);
+            }
+
+            // Tela de Game Over
             if (gameOver) {
-                ctx.fillStyle = 'rgba(244, 250, 240, 0.85)';
-                ctx.fillRect(20, 130, canvas.width - 40, 140);
-
-                ctx.strokeStyle = '#111111';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(20, 130, canvas.width - 40, 140);
-
-                ctx.fillStyle = '#c62828';
-                ctx.font = 'bold 22px "Courier New"';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff4444';
+                ctx.font = 'bold 24px "Courier New"';
                 ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', canvas.width / 2, 175);
-
-                ctx.fillStyle = '#111111';
-                ctx.font = 'bold 13px "Courier New"';
-                ctx.fillText('PRESSIONE ESPAÇO PARA REINICIAR', canvas.width / 2, 220);
+                ctx.fillText('FIM DE JOGO', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px "Courier New"';
+                ctx.fillText('Clique ou Pressione ESPAÇO para Recomeçar', canvas.width / 2, canvas.height / 2 + 20);
             }
         }
 
-        // --- LOOP PRINCIPAL ---
-        function gameLoop() {
+        function loop() {
             update();
-            render();
-            requestAnimationFrame(gameLoop);
+            draw();
+            requestAnimationFrame(loop);
         }
 
-        // --- LISTENERS DE TECLADO & TOUCH ---
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-
-            if (!gameStarted || gameOver) {
-                if (e.code === 'Space' || e.code === 'Enter') {
-                    resetGame();
-                }
-            }
-        });
-
-        window.addEventListener('keyup', e => {
-            keys[e.code] = false;
-        });
-
-        // Clique no Canvas para iniciar se estiver parado
-        canvas.addEventListener('click', () => {
-            if (!gameStarted || gameOver) {
-                resetGame();
-            }
-        });
-
-        // Configuração dos Botões de Toque (Mobile)
-        function setupTouchButton(id, keyName, dir) {
-            const btn = document.getElementById(id);
-            const startHandler = (e) => {
-                e.preventDefault();
-                if (!gameStarted || gameOver) {
-                    resetGame();
-                    return;
-                }
-                if (keyName === 'Space') {
-                    shootBullet();
-                } else {
-                    keys[keyName] = true;
-                }
-            };
-            const endHandler = (e) => {
-                e.preventDefault();
-                if (keyName !== 'Space') {
-                    keys[keyName] = false;
-                }
-            };
-
-            btn.addEventListener('touchstart', startHandler);
-            btn.addEventListener('touchend', endHandler);
-            btn.addEventListener('mousedown', startHandler);
-            btn.addEventListener('mouseup', endHandler);
-        }
-
-        setupTouchButton('btn-up', 'ArrowUp');
-        setupTouchButton('btn-down', 'ArrowDown');
-        setupTouchButton('btn-left', 'ArrowLeft');
-        setupTouchButton('btn-right', 'ArrowRight');
-        setupTouchButton('btn-fire', 'Space');
-
-        // Inicia o Loop de Animação
-        requestAnimationFrame(gameLoop);
+        loop();
     </script>
 </body>
 </html>

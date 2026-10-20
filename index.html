@@ -69,7 +69,7 @@
 </head>
 <body>
 
-    <h1>• TANK ATTACK •</h1>
+    <h1>• TANK ATTACK •    BY-@jeffersoongomes </h1>
     <div class="scoreboard">
         Vidas: <span id="lives">❤️❤️❤️</span> | Nível: <span id="level">1</span> | Pontos: <span id="score">0</span> | Recorde: <span id="highscore">0</span>
     </div>
@@ -156,26 +156,25 @@
 
             let bx = 0, by = 0;
             let bdx = 0, bdy = 0;
-            let speed = 7;
-            let cannonLength = 22; // Distância do centro até à ponta do canhão
+            let speed = 4;
             let centerX = player.x + player.size / 2;
             let centerY = player.y + player.size / 2;
 
-            // Posição EXATA da ponta do bico do canhão
+            // Tiro sai exatamente da ponta do canhão
             if (player.dir === 'UP') {
                 bx = centerX - 3;
-                by = centerY - cannonLength;
+                by = player.y - 10;
                 bdy = -speed;
             } else if (player.dir === 'DOWN') {
                 bx = centerX - 3;
-                by = centerY + cannonLength - 6;
+                by = player.y + player.size + 4;
                 bdy = speed;
             } else if (player.dir === 'LEFT') {
-                bx = centerX - cannonLength;
+                bx = player.x - 10;
                 by = centerY - 3;
                 bdx = -speed;
             } else if (player.dir === 'RIGHT') {
-                bx = centerX + cannonLength - 6;
+                bx = player.x + player.size + 4;
                 by = centerY - 3;
                 bdx = speed;
             }
@@ -183,115 +182,4 @@
             bullets.push({ x: bx, y: by, dx: bdx, dy: bdy, size: 6 });
         }
 
-        function spawnEnemy() {
-            if (gameOver) return;
-            let side = Math.floor(Math.random() * 4);
-            let ex = 0, ey = 0;
-            if (side === 0) { ex = Math.random() * (canvas.width - 30); ey = -30; }
-            else if (side === 1) { ex = Math.random() * (canvas.width - 30); ey = canvas.height + 30; }
-            else if (side === 2) { ex = -30; ey = Math.random() * (canvas.height - 30); }
-            else { ex = canvas.width + 30; ey = Math.random() * (canvas.height - 30); }
-
-            enemies.push({ x: ex, y: ey, size: 30, speed: 1 + (level * 0.2), angle: 0 });
-        }
-
-        setInterval(spawnEnemy, 2500);
-
-        function resetGame() {
-            score = 0;
-            lives = 3;
-            level = 1;
-            gameTime = 0;
-            gameOver = false;
-            enemies = [];
-            bullets = [];
-            enemyBullets = [];
-            player.x = 235;
-            player.y = 235;
-            scoreEl.innerText = score;
-            levelEl.innerText = level;
-            livesEl.innerText = '❤️❤️❤️';
-        }
-
-        function update() {
-            if (gameOver) return;
-
-            // Movimento do Jogador
-            if ((keys['KeyW'] || keys['ArrowUp']) && player.y > 0) { player.y -= player.speed; player.dir = 'UP'; }
-            if ((keys['KeyS'] || keys['ArrowDown']) && player.y < canvas.height - player.size) { player.y += player.speed; player.dir = 'DOWN'; }
-            if ((keys['KeyA'] || keys['ArrowLeft']) && player.x > 0) { player.x -= player.speed; player.dir = 'LEFT'; }
-            if ((keys['KeyD'] || keys['ArrowRight']) && player.x < canvas.width - player.size) { player.x += player.speed; player.dir = 'RIGHT'; }
-
-            // Balas do Jogador
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.x += b.dx;
-                b.y += b.dy;
-
-                if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // Destrói inimigo ao acertar
-                for (let j = enemies.length - 1; j >= 0; j--) {
-                    let e = enemies[j];
-                    if (b.x < e.x + e.size && b.x + b.size > e.x && b.y < e.y + e.size && b.y + b.size > e.y) {
-                        enemies.splice(j, 1);
-                        bullets.splice(i, 1);
-                        score += 10;
-                        scoreEl.innerText = score;
-                        if (score > highscore) {
-                            highscore = score;
-                            highscoreEl.innerText = highscore;
-                            localStorage.setItem('tank_highscore', highscore);
-                        }
-                        break;
-                    }
-                }
-            }
-
-            // Inimigos
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
-                let exCenter = e.x + e.size / 2;
-                let eyCenter = e.y + e.size / 2;
-                let pxCenter = player.x + player.size / 2;
-                let pyCenter = player.y + player.size / 2;
-
-                // Ângulo em direção ao jogador
-                e.angle = Math.atan2(pyCenter - eyCenter, pxCenter - exCenter);
-
-                e.x += Math.cos(e.angle) * e.speed;
-                e.y += Math.sin(e.angle) * e.speed;
-
-                // Tiro sai EXATAMENTE da ponta do canhão do inimigo
-                if (Math.random() < 0.008 + (level * 0.002)) {
-                    let cannonLength = 20;
-                    let tipX = exCenter + Math.cos(e.angle) * cannonLength;
-                    let tipY = eyCenter + Math.sin(e.angle) * cannonLength;
-                    let bSpeed = 3 + level * 0.4;
-
-                    enemyBullets.push({
-                        x: tipX - 3,
-                        y: tipY - 3,
-                        dx: Math.cos(e.angle) * bSpeed,
-                        dy: Math.sin(e.angle) * bSpeed,
-                        size: 6
-                    });
-                }
-            }
-
-            // Balas Inimigas
-            for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                let eb = enemyBullets[i];
-                eb.x += eb.dx;
-                eb.y += eb.dy;
-
-                if (eb.x < 0 || eb.x > canvas.width || eb.y < 0 || eb.y > canvas.height) {
-                    enemyBullets.splice(i, 1);
-                    continue;
-                }
-
-                // Dano ao jogador ao ser atingido pela bala
-                if (eb.x < player.x + player.size && eb.x + eb.size
+        function spawnEnemy()

@@ -33,7 +33,7 @@
         }
         canvas {
             border: 4px solid #fff;
-            background-color: #f7f7f7; /* Fundo estilo ecrã LCD verde/claro */
+            background-color: #e0e8d0;
             box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
         }
         .controls-hint {
@@ -106,7 +106,6 @@
         let gameTime = 0;
         let gameOver = false;
 
-        // Subida de nível a cada 60 segundos
         setInterval(() => {
             if (!gameOver) {
                 gameTime++;
@@ -117,35 +116,10 @@
             }
         }, 1000);
 
-        // Matrizes Pixel de 8-bits dos Tanques (Estilo Mini-game LCD)
-        // 1 representa bloco/pixel do tanque, 0 representa espaço vazio
-        const tankPixelsUP = [
-            [0, 1, 0],
-            [1, 1, 1],
-            [1, 0, 1]
-        ];
-        const tankPixelsDOWN = [
-            [1, 0, 1],
-            [1, 1, 1],
-            [0, 1, 0]
-        ];
-        const tankPixelsLEFT = [
-            [0, 1, 1],
-            [1, 1, 0],
-            [0, 1, 1]
-        ];
-        const tankPixelsRIGHT = [
-            [1, 1, 0],
-            [0, 1, 1],
-            [1, 1, 0]
-        ];
-
-        // Jogador (Tamanho 36px formado por blocos de 12px)
         let player = {
-            x: 232,
-            y: 232,
-            size: 36,
-            blockSize: 12,
+            x: 235,
+            y: 235,
+            size: 32,
             speed: 3,
             dir: 'UP'
         };
@@ -181,26 +155,13 @@
             let bx = 0, by = 0;
             let bdx = 0, bdy = 0;
             let speed = 7;
-            let bs = player.blockSize;
+            let cx = player.x + player.size / 2;
+            let cy = player.y + player.size / 2;
 
-            // Posição exata da ponta do canhão do jogador
-            if (player.dir === 'UP') {
-                bx = player.x + bs + 3;
-                by = player.y - 6;
-                bdy = -speed;
-            } else if (player.dir === 'DOWN') {
-                bx = player.x + bs + 3;
-                by = player.y + player.size + 2;
-                bdy = speed;
-            } else if (player.dir === 'LEFT') {
-                bx = player.x - 6;
-                by = player.y + bs + 3;
-                bdx = -speed;
-            } else if (player.dir === 'RIGHT') {
-                bx = player.x + player.size + 2;
-                by = player.y + bs + 3;
-                bdx = speed;
-            }
+            if (player.dir === 'UP') { bx = cx - 3; by = player.y - 10; bdy = -speed; }
+            else if (player.dir === 'DOWN') { bx = cx - 3; by = player.y + player.size; bdy = speed; }
+            else if (player.dir === 'LEFT') { bx = player.x - 10; by = cy - 3; bdx = -speed; }
+            else if (player.dir === 'RIGHT') { bx = player.x + player.size; by = cy - 3; bdx = speed; }
 
             bullets.push({ x: bx, y: by, dx: bdx, dy: bdy, size: 6 });
         }
@@ -209,21 +170,17 @@
             if (gameOver) return;
             let side = Math.floor(Math.random() * 4);
             let ex = 0, ey = 0;
-            let dirs = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
-            let randomDir = dirs[Math.floor(Math.random() * dirs.length)];
-
-            if (side === 0) { ex = Math.random() * (canvas.width - 36); ey = -36; }
-            else if (side === 1) { ex = Math.random() * (canvas.width - 36); ey = canvas.height + 36; }
-            else if (side === 2) { ex = -36; ey = Math.random() * (canvas.height - 36); }
-            else { ex = canvas.width + 36; ey = Math.random() * (canvas.height - 36); }
+            if (side === 0) { ex = Math.random() * (canvas.width - 32); ey = -40; }
+            else if (side === 1) { ex = Math.random() * (canvas.width - 32); ey = canvas.height + 40; }
+            else if (side === 2) { ex = -40; ey = Math.random() * (canvas.height - 32); }
+            else { ex = canvas.width + 40; ey = Math.random() * (canvas.height - 32); }
 
             enemies.push({
                 x: ex,
                 y: ey,
-                size: 36,
-                blockSize: 12,
+                size: 32,
                 speed: 1 + (level * 0.2),
-                dir: randomDir
+                dir: 'DOWN'
             });
         }
 
@@ -238,8 +195,8 @@
             enemies = [];
             bullets = [];
             enemyBullets = [];
-            player.x = 232;
-            player.y = 232;
+            player.x = 235;
+            player.y = 235;
             scoreEl.innerText = score;
             levelEl.innerText = level;
             livesEl.innerText = '❤️❤️❤️';
@@ -248,13 +205,11 @@
         function update() {
             if (gameOver) return;
 
-            // Movimento do Jogador
             if ((keys['KeyW'] || keys['ArrowUp']) && player.y > 0) { player.y -= player.speed; player.dir = 'UP'; }
             if ((keys['KeyS'] || keys['ArrowDown']) && player.y < canvas.height - player.size) { player.y += player.speed; player.dir = 'DOWN'; }
             if ((keys['KeyA'] || keys['ArrowLeft']) && player.x > 0) { player.x -= player.speed; player.dir = 'LEFT'; }
             if ((keys['KeyD'] || keys['ArrowRight']) && player.x < canvas.width - player.size) { player.x += player.speed; player.dir = 'RIGHT'; }
 
-            // Balas do Jogador
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
                 b.x += b.dx;
@@ -265,7 +220,6 @@
                     continue;
                 }
 
-                // Colisão da bala com o tanque inimigo
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     let e = enemies[j];
                     if (b.x < e.x + e.size && b.x + b.size > e.x && b.y < e.y + e.size && b.y + b.size > e.y) {
@@ -283,27 +237,110 @@
                 }
             }
 
-            // Inimigos (Movem-se e disparam)
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
-                let exCenter = e.x + e.size / 2;
-                let eyCenter = e.y + e.size / 2;
-                let pxCenter = player.x + player.size / 2;
-                let pyCenter = player.y + player.size / 2;
+                let exC = e.x + e.size / 2;
+                let eyC = e.y + e.size / 2;
+                let pxC = player.x + player.size / 2;
+                let pyC = player.y + player.size / 2;
 
-                // Escolhe a direção do canhão baseado na posição do jogador
-                if (Math.abs(pxCenter - exCenter) > Math.abs(pyCenter - eyCenter)) {
-                    e.dir = pxCenter > exCenter ? 'RIGHT' : 'LEFT';
+                if (Math.abs(pxC - exC) > Math.abs(pyC - eyC)) {
+                    e.dir = pxC > exC ? 'RIGHT' : 'LEFT';
                 } else {
-                    e.dir = pyCenter > eyCenter ? 'DOWN' : 'UP';
+                    e.dir = pyC > eyC ? 'DOWN' : 'UP';
                 }
 
-                // Movimento do tanque inimigo em direção ao jogador
                 if (e.dir === 'UP') e.y -= e.speed;
                 if (e.dir === 'DOWN') e.y += e.speed;
                 if (e.dir === 'LEFT') e.x -= e.speed;
                 if (e.dir === 'RIGHT') e.x += e.speed;
 
-                // Tiro do Tanque Inimigo a sair da PONTA do canhão
                 if (Math.random() < 0.008 + (level * 0.002)) {
                     let ebx = 0, eby = 0, ebdx = 0, ebdy = 0;
+                    let bSpeed = 3 + level * 0.4;
+                    let ecx = e.x + e.size / 2;
+                    let ecy = e.y + e.size / 2;
+
+                    if (e.dir === 'UP') { ebx = ecx - 3; eby = e.y - 10; ebdy = -bSpeed; }
+                    else if (e.dir === 'DOWN') { ebx = ecx - 3; eby = e.y + e.size; ebdy = bSpeed; }
+                    else if (e.dir === 'LEFT') { ebx = e.x - 10; eby = ecy - 3; ebdx = -bSpeed; }
+                    else if (e.dir === 'RIGHT') { ebx = e.x + e.size; eby = ecy - 3; ebdx = bSpeed; }
+
+                    enemyBullets.push({ x: ebx, y: eby, dx: ebdx, dy: ebdy, size: 6 });
+                }
+            }
+
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.x += eb.dx;
+                eb.y += eb.dy;
+
+                if (eb.x < 0 || eb.x > canvas.width || eb.y < 0 || eb.y > canvas.height) {
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+
+                if (eb.x < player.x + player.size && eb.x + eb.size > player.x && eb.y < player.y + player.size && eb.y + eb.size > player.y) {
+                    enemyBullets.splice(i, 1);
+                    lives--;
+                    updateLivesDisplay();
+                    if (lives <= 0) gameOver = true;
+                }
+            }
+        }
+
+        function updateLivesDisplay() {
+            let h = '';
+            for (let i = 0; i < lives; i++) h += '❤️';
+            livesEl.innerText = h;
+        }
+
+        function drawTank(x, y, dir, isPlayer) {
+            ctx.fillStyle = isPlayer ? '#000000' : '#111111';
+            ctx.fillRect(x, y, 32, 32);
+
+            ctx.fillStyle = isPlayer ? '#4CAF50' : '#ff4444';
+            if (dir === 'UP') ctx.fillRect(x + 13, y - 10, 6, 12);
+            if (dir === 'DOWN') ctx.fillRect(x + 13, y + 30, 6, 12);
+            if (dir === 'LEFT') ctx.fillRect(x - 10, y + 13, 12, 6);
+            if (dir === 'RIGHT') ctx.fillRect(x + 30, y + 13, 12, 6);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawTank(player.x, player.y, player.dir, true);
+
+            for (let e of enemies) {
+                drawTank(e.x, e.y, e.dir, false);
+            }
+
+            ctx.fillStyle = '#00aa00';
+            for (let b of bullets) ctx.fillRect(b.x, b.y, b.size, b.size);
+
+            ctx.fillStyle = '#ff1111';
+            for (let eb of enemyBullets) ctx.fillRect(eb.x, eb.y, eb.size, eb.size);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff4444';
+                ctx.font = 'bold 24px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.fillText('FIM DE JOGO', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px "Courier New"';
+                ctx.fillText('Clique ou Pressione ESPAÇO para Recomeçar', canvas.width / 2, canvas.height / 2 + 20);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
